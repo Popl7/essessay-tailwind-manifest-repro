@@ -2,14 +2,25 @@
 
 Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
 
-> **You're on the `no-external-process-repro` branch.** This has no Tailwind CLI
-> and no external process at all — `GenerateSiteCss` writes `wwwroot/css/site.css`
-> with a single built-in, synchronous `<WriteLinesToFile>` MSBuild task. Same bug,
-> reproduced 3/3 local builds. This is the evidence that the bug has nothing to
-> do with Tailwind or with launching an external process — see the issue comment
-> for the full writeup, which also covers a second variant (a trivial external
-> `Exec` with no download) that reproduces it just the same. The `main` branch
-> has the original Tailwind-CLI-based repro.
+> **You're on the `official-pattern-repro` branch.** `GenerateSiteCss` follows
+> Microsoft's own documented pattern for hooking asset generation into static
+> web assets, from
+> [Build client web assets for your Razor Class Library](https://devblogs.microsoft.com/dotnet/build-client-web-assets-for-your-razor-class-library/):
+> `BeforeTargets="AssignTargetPaths"` (not `BeforeBuild`), the file written to
+> `$(IntermediateOutputPath)` rather than directly into `wwwroot`, and linked
+> in via an explicit `<Content Include=".." Link="wwwroot/.." />` item instead
+> of relying on the `wwwroot/**` wildcard glob to notice a file that appeared
+> on disk after project evaluation.
+>
+> **Finding: this is the first variant that held up** — `site.css` correctly
+> gets a route in the manifest and `GET /css/site.css` serves it, 4/4 local
+> builds, confirmed on GitHub Actions too (see
+> [`.github/workflows/check-official-pattern.yml`](.github/workflows/check-official-pattern.yml)).
+> Every other branch here (`main`, `no-external-process-repro`, `dotnet9-repro`,
+> `dotnet11-repro`) writes the file directly into `wwwroot` and relies on the
+> wildcard glob — that's the part that actually seems to race. The hook name
+> alone (`BeforeBuild` vs `AssignTargetPaths`) wasn't the fix; explicitly
+> declaring the output as a `Content` item was.
 
 ## The bug
 

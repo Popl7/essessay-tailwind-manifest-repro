@@ -1,0 +1,40 @@
+name: Check the official AssignTargetPaths + Content-Link pattern
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [official-pattern-repro]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (no cache)
+        run: docker build --no-cache -t essessay-official -f Essessay/Dockerfile .
+
+      - name: Manifest check — is css/site.css in the endpoints manifest?
+        run: |
+          docker run --rm --entrypoint sh essessay-official -c "
+            grep -o '\"Route\":\"[^\"]*site.css[^\"]*\"' /app/Essessay.staticwebassets.endpoints.json
+          " | tee /tmp/result.txt
+          if grep -q '"Route":"css/site.css"' /tmp/result.txt; then
+            echo "site.css IS in the manifest — the official pattern held up"
+          else
+            echo "site.css is MISSING — the official pattern doesn't avoid the bug either"
+          fi
+
+      - name: Runtime check
+        run: |
+          docker run -d --rm --name essessay-official-runtime -p 8080:8080 essessay-official
+          sleep 5
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/css/site.css)
+          echo "GET /css/site.css -> $code"
+          docker stop essessay-official-runtime
+          if [ "$code" = "200" ]; then
+            echo "RESULT: served correctly (200) — the official pattern avoids the bug"
+          else
+            echo "RESULT: 404 — the official pattern still hits the bug"
+            exit 1
+          fi

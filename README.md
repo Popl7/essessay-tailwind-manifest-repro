@@ -2,19 +2,22 @@
 
 Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
 
-> **You're on the `dotnet9-repro` branch.** Same app and `GenerateSiteCss`
-> target as `no-external-process-repro`, retargeted to `net9.0`. `net9.0` is
-> the first TFM with `MapStaticAssets()` (added in .NET 9). Finding: **.NET 9
-> has the exact same user-visible bug as .NET 10** — `site.css` is missing
-> from `Essessay.staticwebassets.endpoints.json`, and `GET /css/site.css`
-> genuinely 404s. See [`dotnet8-repro`](../../tree/dotnet8-repro): the
-> underlying discovery gap already existed on .NET 8 too, but was harmless
-> there because `UseStaticFiles()` (used before `MapStaticAssets()` existed)
-> never consults that manifest. .NET 9 is where it started actually breaking
-> apps. See [`.github/workflows/check-net9-behavior.yml`](.github/workflows/check-net9-behavior.yml)
-> for the CI check. The `main` branch has the original Tailwind-CLI-based
-> .NET 10 repro; `no-external-process-repro` has the same .NET 10 bug with no
-> Tailwind CLI and no external process at all.
+> **You're on the `dotnet11-repro` branch.** Same app and `GenerateSiteCss`
+> target, retargeted to `net11.0` against the `11.0-preview` SDK/runtime
+> images. Finding: **still the exact same user-visible bug** — `site.css`
+> missing from `Essessay.staticwebassets.endpoints.json`, `GET /css/site.css`
+> genuinely 404s, 3/3 local builds. See
+> [`.github/workflows/check-net11-behavior.yml`](.github/workflows/check-net11-behavior.yml)
+> for the CI check.
+>
+> Full picture across TFMs so far:
+>
+> | TFM | Discovery gap present? | User-visible (404)? |
+> |---|---|---|
+> | [`dotnet8-repro`](../../tree/dotnet8-repro) | Yes | No — `UseStaticFiles()` doesn't consult the manifest |
+> | [`dotnet9-repro`](../../tree/dotnet9-repro) | Yes | **Yes** — `MapStaticAssets()` shipped here |
+> | `main` / [`no-external-process-repro`](../../tree/no-external-process-repro) (.NET 10) | Yes | Yes |
+> | `dotnet11-repro` (this branch, preview) | Yes | Yes |
 
 ## The bug
 

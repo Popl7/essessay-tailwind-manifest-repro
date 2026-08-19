@@ -1,0 +1,52 @@
+name: Check .NET 8 static web assets discovery and runtime behavior
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dotnet8-repro]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the "build" stage (keeps obj/ around)
+        run: docker build --no-cache --target build -t essessay-net8-build -f Essessay/Dockerfile .
+
+      - name: Discovery check — is site.css in the build-time manifest?
+        run: |
+          docker run --rm --entrypoint sh essessay-net8-build -c "
+            cat /src/Essessay/obj/Release/net8.0/staticwebassets.build.json
+          " > /tmp/build_manifest.json
+          echo '--- Assets discovered ---'
+          python3 -c "
+          import json
+          d = json.load(open('/tmp/build_manifest.json'))
+          for a in d['Assets']:
+              print(a['RelativePath'])
+          "
+          python3 -c "
+          import json, sys
+          d = json.load(open('/tmp/build_manifest.json'))
+          found = any(a['RelativePath'] == 'css/site.css' for a in d['Assets'])
+          print('site.css IS in the discovery manifest on .NET 8' if found
+                else 'site.css is MISSING from the discovery manifest on .NET 8 too (same underlying gap as .NET 9/10)')
+          "
+
+      - name: Build the final runtime image
+        run: docker build --no-cache -t essessay-net8-final -f Essessay/Dockerfile .
+
+      - name: Runtime check — does GET /css/site.css actually 404?
+        run: |
+          docker run -d --rm --name essessay-net8-runtime -p 8080:8080 essessay-net8-final
+          sleep 5
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/css/site.css)
+          echo "GET /css/site.css -> $code"
+          docker stop essessay-net8-runtime
+          if [ "$code" = "200" ]; then
+            echo "RESULT: served correctly (200) — the discovery gap exists but is harmless on .NET 8, since UseStaticFiles() reads wwwroot from disk directly rather than consulting the manifest."
+          else
+            echo "RESULT: 404 — the discovery gap is user-visible on .NET 8 too."
+            exit 1
+          fi

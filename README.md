@@ -2,14 +2,27 @@
 
 Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
 
-> **You're on the `no-external-process-repro` branch.** This has no Tailwind CLI
-> and no external process at all — `GenerateSiteCss` writes `wwwroot/css/site.css`
-> with a single built-in, synchronous `<WriteLinesToFile>` MSBuild task. Same bug,
-> reproduced 3/3 local builds. This is the evidence that the bug has nothing to
-> do with Tailwind or with launching an external process — see the issue comment
-> for the full writeup, which also covers a second variant (a trivial external
-> `Exec` with no download) that reproduces it just the same. The `main` branch
-> has the original Tailwind-CLI-based repro.
+> **You're on the `dotnet8-repro` branch.** Same app and same `GenerateSiteCss`
+> target as `no-external-process-repro`, retargeted to `net8.0` with
+> `UseStaticFiles()` instead of `MapStaticAssets()` (which doesn't exist before
+> .NET 9). Findings:
+>
+> - The **discovery gap already exists on .NET 8**: `site.css` is missing from
+>   `obj/Release/net8.0/staticwebassets.build.json`'s `Assets` list, same as it's
+>   missing from `Essessay.staticwebassets.endpoints.json` on .NET 9/10. Same
+>   underlying bug, same MSBuild-level cause.
+> - But it's **not observable as a runtime 404 on .NET 8** — `GET /css/site.css`
+>   returns 200 with the correct content. `UseStaticFiles()` serves straight from
+>   `WebRootFileProvider` (a physical file provider pointed at `wwwroot` on disk)
+>   and never consults that manifest. `MapStaticAssets()`, added in .NET 9,
+>   is what made this manifest load-bearing for a plain app's own static assets
+>   — that's why the bug went from "a discovery gap nobody could see" to
+>   "your CSS 404s in production."
+>
+> See [`.github/workflows/check-net8-behavior.yml`](.github/workflows/check-net8-behavior.yml)
+> for both checks. The `main` branch has the original Tailwind-CLI-based .NET 10
+> repro; `no-external-process-repro` has the same bug with no Tailwind CLI and no
+> external process at all.
 
 ## The bug
 

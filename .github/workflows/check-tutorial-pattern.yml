@@ -1,0 +1,40 @@
+name: Check the real-world tutorial pattern (BeforeTargets="Build", write straight to wwwroot)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [tutorial-pattern-repro]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (no cache)
+        run: docker build --no-cache -t essessay-tutorial -f Essessay/Dockerfile .
+
+      - name: Manifest check — is css/site.css in the endpoints manifest?
+        run: |
+          docker run --rm --entrypoint sh essessay-tutorial -c "
+            grep -o '\"Route\":\"[^\"]*site.css[^\"]*\"' /app/Essessay.staticwebassets.endpoints.json
+          " | tee /tmp/result.txt
+          if grep -q '"Route":"css/site.css"' /tmp/result.txt; then
+            echo "site.css IS in the manifest — the tutorial pattern held up"
+          else
+            echo "site.css is MISSING — the tutorial pattern is broken under MapStaticAssets()"
+          fi
+
+      - name: Runtime check
+        run: |
+          docker run -d --rm --name essessay-tutorial-runtime -p 8080:8080 essessay-tutorial
+          sleep 5
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/css/site.css)
+          echo "GET /css/site.css -> $code"
+          docker stop essessay-tutorial-runtime
+          if [ "$code" = "200" ]; then
+            echo "RESULT: served correctly (200)"
+          else
+            echo "RESULT: 404 — the real-world tutorial pattern hits the bug"
+            exit 1
+          fi

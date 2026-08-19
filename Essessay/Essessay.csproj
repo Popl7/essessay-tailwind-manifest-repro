@@ -6,20 +6,24 @@
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
 
-    <!-- No Tailwind CLI, no external process at all. A built-in, synchronous
-         MSBuild task writes wwwroot/css/site.css in-process. Same bug as the
-         Tailwind-based version on `main` — see the README and
-         https://github.com/dotnet/aspnetcore/issues/68641 — which shows this
-         has nothing to do with Tailwind or with running an external process;
-         it's purely about a BeforeBuild-hooked target writing into wwwroot. -->
-    <ItemGroup>
-        <SiteCssInput Include="Views/**/*.cshtml" />
-    </ItemGroup>
+    <!-- The exact shape taught by real "add Tailwind to ASP.NET Core" tutorials —
+         see https://github.com/dotnet/aspnetcore/issues/68641#issuecomment-5342134333
+         for the specific posts this mirrors, e.g.:
 
-    <Target Name="GenerateSiteCss" BeforeTargets="BeforeBuild" Inputs="@(SiteCssInput)" Outputs="$(BaseIntermediateOutputPath)sitecss.stamp;wwwroot/css/site.css">
+           <Target Name="Tailwind" BeforeTargets="Build">
+               <Exec Command="npx @tailwindcss/cli -i ./css/site.css -o ../wwwroot/css/site.css" />
+           </Target>
+
+         BeforeTargets="Build" (not BeforeBuild, not AssignTargetPaths), no
+         Inputs/Outputs incremental check, no Content/Link item — just a task
+         that writes straight into wwwroot, exactly as taught. This one uses
+         WriteLinesToFile instead of shelling out to npx/tailwindcss (no Node
+         dependency, and we've already shown in this repo that Tailwind CLI vs.
+         a trivial write makes no difference), but it's otherwise the same shape
+         a developer following one of those posts on .NET 10 would end up with. -->
+    <Target Name="Tailwind" BeforeTargets="Build">
         <MakeDir Directories="wwwroot/css" />
         <WriteLinesToFile File="wwwroot/css/site.css" Lines=".max-w-lg{max-width:32rem}.border-emerald-500{border-color:#10b981}body{background:#f1f5f9}" Overwrite="true" />
-        <Touch Files="$(BaseIntermediateOutputPath)sitecss.stamp" AlwaysCreate="true" />
     </Target>
 
 </Project>

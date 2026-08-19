@@ -2,14 +2,24 @@
 
 Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
 
-> **You're on the `no-external-process-repro` branch.** This has no Tailwind CLI
-> and no external process at all — `GenerateSiteCss` writes `wwwroot/css/site.css`
-> with a single built-in, synchronous `<WriteLinesToFile>` MSBuild task. Same bug,
-> reproduced 3/3 local builds. This is the evidence that the bug has nothing to
-> do with Tailwind or with launching an external process — see the issue comment
-> for the full writeup, which also covers a second variant (a trivial external
-> `Exec` with no download) that reproduces it just the same. The `main` branch
-> has the original Tailwind-CLI-based repro.
+> **You're on the `tutorial-pattern-repro` branch.** Mirrors the exact shape
+> taught by real "add Tailwind to ASP.NET Core" tutorials — see
+> [this issue comment](https://github.com/dotnet/aspnetcore/issues/68641#issuecomment-5342134333)
+> for the specific posts, one of which is written for .NET 10 specifically:
+>
+> ```xml
+> <Target Name="Tailwind" BeforeTargets="Build">
+>     <Exec Command="npx @tailwindcss/cli -i ./css/site.css -o ../wwwroot/css/site.css" />
+> </Target>
+> ```
+>
+> `BeforeTargets="Build"` (not `BeforeBuild`, not `AssignTargetPaths`), no
+> `Inputs`/`Outputs`, no `Content`/`Link` item — just a task that writes
+> straight into `wwwroot`, exactly as taught. **Finding: broken, 3/3 local
+> builds and confirmed on GitHub Actions** — same bug, same signature, just
+> using the literal hook name these tutorials actually teach instead of
+> `BeforeBuild`. See
+> [`.github/workflows/check-tutorial-pattern.yml`](.github/workflows/check-tutorial-pattern.yml).
 
 ## The bug
 

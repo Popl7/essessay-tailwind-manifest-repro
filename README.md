@@ -2,14 +2,19 @@
 
 Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
 
-> **You're on the `no-external-process-repro` branch.** This has no Tailwind CLI
-> and no external process at all — `GenerateSiteCss` writes `wwwroot/css/site.css`
-> with a single built-in, synchronous `<WriteLinesToFile>` MSBuild task. Same bug,
-> reproduced 3/3 local builds. This is the evidence that the bug has nothing to
-> do with Tailwind or with launching an external process — see the issue comment
-> for the full writeup, which also covers a second variant (a trivial external
-> `Exec` with no download) that reproduces it just the same. The `main` branch
-> has the original Tailwind-CLI-based repro.
+> **You're on the `dotnet9-repro` branch.** Same app and `GenerateSiteCss`
+> target as `no-external-process-repro`, retargeted to `net9.0`. `net9.0` is
+> the first TFM with `MapStaticAssets()` (added in .NET 9). Finding: **.NET 9
+> has the exact same user-visible bug as .NET 10** — `site.css` is missing
+> from `Essessay.staticwebassets.endpoints.json`, and `GET /css/site.css`
+> genuinely 404s. See [`dotnet8-repro`](../../tree/dotnet8-repro): the
+> underlying discovery gap already existed on .NET 8 too, but was harmless
+> there because `UseStaticFiles()` (used before `MapStaticAssets()` existed)
+> never consults that manifest. .NET 9 is where it started actually breaking
+> apps. See [`.github/workflows/check-net9-behavior.yml`](.github/workflows/check-net9-behavior.yml)
+> for the CI check. The `main` branch has the original Tailwind-CLI-based
+> .NET 10 repro; `no-external-process-repro` has the same .NET 10 bug with no
+> Tailwind CLI and no external process at all.
 
 ## The bug
 

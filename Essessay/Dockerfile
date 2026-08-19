@@ -1,33 +1,23 @@
 # Build context is the repository root (see compose.yaml), so paths here are
 # repo-relative.
+#
+# .NET 9 variant: MapStaticAssets() exists here (added in .NET 9), unlike .NET
+# 8. Testing whether the discovery gap (see README,
+# https://github.com/dotnet/aspnetcore/issues/68641) is already user-visible
+# on .NET 9, or only from .NET 10 onward.
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Restore against the project file alone: editing a .cs or .cshtml then keeps
-# this layer, which is the slow one.
 COPY Essessay/Essessay.csproj Essessay/
 RUN dotnet restore Essessay/Essessay.csproj
 
 COPY Essessay/ Essessay/
-# Publishing runs the Tailwind target, which downloads the pinned standalone CLI
-# for this image's architecture and generates wwwroot/css/site.css. Still no Node.
 RUN dotnet publish Essessay/Essessay.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app .
-
-# The image ships no app.db; the migration in Program.cs creates it on startup.
-# It needs somewhere writable to do that, and /app is root-owned while the app
-# runs as $APP_UID — SQLite's "attempt to write a readonly database" otherwise.
-#
-# The database is therefore per-container and dies with it, which also means
-# `--scale essessay=3` gives you three separate sets of user accounts. The board
-# is shared because it lives in Redis; Identity is not. A real deployment points
-# ConnectionStrings__DefaultConnection at something the instances share.
-RUN mkdir -p /data && chown $APP_UID /data
-ENV ConnectionStrings__DefaultConnection="DataSource=/data/app.db;Cache=Shared"
 
 USER $APP_UID
 EXPOSE 8080

@@ -1,0 +1,40 @@
+name: Check .NET 9 static web assets manifest and runtime behavior
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dotnet9-repro]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (no cache)
+        run: docker build --no-cache -t essessay-net9 -f Essessay/Dockerfile .
+
+      - name: Manifest check — is css/site.css in the endpoints manifest?
+        run: |
+          docker run --rm --entrypoint sh essessay-net9 -c "
+            grep -o '\"Route\":\"[^\"]*site.css[^\"]*\"' /app/Essessay.staticwebassets.endpoints.json
+          " | tee /tmp/result.txt
+          if grep -q '"Route":"css/site.css"' /tmp/result.txt; then
+            echo "site.css IS in the manifest on .NET 9"
+          else
+            echo "site.css is MISSING from the manifest on .NET 9 too (same as .NET 10)"
+          fi
+
+      - name: Runtime check — does GET /css/site.css actually 404?
+        run: |
+          docker run -d --rm --name essessay-net9-runtime -p 8080:8080 essessay-net9
+          sleep 5
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/css/site.css)
+          echo "GET /css/site.css -> $code"
+          docker stop essessay-net9-runtime
+          if [ "$code" = "200" ]; then
+            echo "RESULT: served correctly (200)"
+          else
+            echo "RESULT: 404 — same user-visible bug as .NET 10, already present on .NET 9"
+            exit 1
+          fi

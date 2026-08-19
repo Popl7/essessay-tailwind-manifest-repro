@@ -2,6 +2,15 @@
 
 Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
 
+> **You're on the `no-external-process-repro` branch.** This has no Tailwind CLI
+> and no external process at all — `GenerateSiteCss` writes `wwwroot/css/site.css`
+> with a single built-in, synchronous `<WriteLinesToFile>` MSBuild task. Same bug,
+> reproduced 3/3 local builds. This is the evidence that the bug has nothing to
+> do with Tailwind or with launching an external process — see the issue comment
+> for the full writeup, which also covers a second variant (a trivial external
+> `Exec` with no download) that reproduces it just the same. The `main` branch
+> has the original Tailwind-CLI-based repro.
+
 ## The bug
 
 A bare ASP.NET Core MVC app (.NET 10) with one page. `Essessay/Essessay.csproj`

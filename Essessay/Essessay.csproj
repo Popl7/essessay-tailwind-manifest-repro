@@ -6,53 +6,20 @@
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
 
-    <!-- ==== Tailwind CSS (standalone CLI, no Node) — the target that triggers the bug ==== -->
-    <PropertyGroup>
-        <TailwindVersion>v4.3.3</TailwindVersion>
-        <TailwindDir>$(MSBuildProjectDirectory)/tools/tailwind</TailwindDir>
-        <TailwindExe>$(TailwindDir)/tailwindcss-$(TailwindVersion)$(TailwindExeSuffix)</TailwindExe>
-        <TailwindCss>$(MSBuildProjectDirectory)/wwwroot/css/site.css</TailwindCss>
-        <TailwindMinify Condition="'$(Configuration)' != 'Debug'">--minify</TailwindMinify>
-        <TailwindStamp>$(BaseIntermediateOutputPath)tailwind.stamp</TailwindStamp>
-        <TailwindFlags>$(BaseIntermediateOutputPath)tailwind.flags</TailwindFlags>
-    </PropertyGroup>
-
+    <!-- No Tailwind CLI, no external process at all. A built-in, synchronous
+         MSBuild task writes wwwroot/css/site.css in-process. Same bug as the
+         Tailwind-based version on `main` — see the README and
+         https://github.com/dotnet/aspnetcore/issues/68641 — which shows this
+         has nothing to do with Tailwind or with running an external process;
+         it's purely about a BeforeBuild-hooked target writing into wwwroot. -->
     <ItemGroup>
-        <TailwindInput Include="Styles/**/*.css;Views/**/*.cshtml;$(TailwindFlags)" />
+        <SiteCssInput Include="Views/**/*.cshtml" />
     </ItemGroup>
 
-    <Target Name="RecordTailwindFlags" BeforeTargets="BuildTailwindCss">
-        <MakeDir Directories="$(BaseIntermediateOutputPath)" />
-        <WriteLinesToFile File="$(TailwindFlags)" Lines="$(TailwindMinify)" Overwrite="true" WriteOnlyWhenDifferent="true" />
-    </Target>
-    <PropertyGroup>
-        <_Arch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString())</_Arch>
-        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(_Arch)' == 'Arm64'">tailwindcss-macos-arm64</TailwindAsset>
-        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(_Arch)' == 'X64'">tailwindcss-macos-x64</TailwindAsset>
-        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(_Arch)' == 'X64'">tailwindcss-linux-x64</TailwindAsset>
-        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(_Arch)' == 'Arm64'">tailwindcss-linux-arm64</TailwindAsset>
-        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('Windows'))">tailwindcss-windows-x64.exe</TailwindAsset>
-        <TailwindExeSuffix Condition="$([MSBuild]::IsOSPlatform('Windows'))">.exe</TailwindExeSuffix>
-    </PropertyGroup>
-
-    <!-- Nothing to do once the pinned binary is on disk; the condition keeps the
-         chmod/codesign Execs off every subsequent build. -->
-    <Target Name="EnsureTailwind" BeforeTargets="BuildTailwindCss" Condition="!Exists('$(TailwindExe)')">
-        <MakeDir Directories="$(TailwindDir)" />
-        <DownloadFile SourceUrl="https://github.com/tailwindlabs/tailwindcss/releases/download/$(TailwindVersion)/$(TailwindAsset)" DestinationFolder="$(TailwindDir)" DestinationFileName="tailwindcss-$(TailwindVersion)$(TailwindExeSuffix)" Retries="2" />
-        <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="chmod +x &quot;$(TailwindExe)&quot;" />
-        <!-- Apple Silicon SIGKILLs unsigned downloaded arm64 binaries; clear provenance + ad-hoc sign. -->
-        <Exec Condition="$([MSBuild]::IsOSPlatform('OSX'))" Command="xattr -c &quot;$(TailwindExe)&quot; ; codesign -s - -f &quot;$(TailwindExe)&quot;" />
-    </Target>
-
-    <!-- THE bug: this target runs inside the same `dotnet publish` invocation that
-         generates Essessay.staticwebassets.endpoints.json. The file it writes
-         (wwwroot/css/site.css) is always correct on disk, but its route is
-         missing from that manifest depending on the build environment — see
-         the README and https://github.com/dotnet/aspnetcore/issues/68641. -->
-    <Target Name="BuildTailwindCss" BeforeTargets="BeforeBuild" Inputs="@(TailwindInput)" Outputs="$(TailwindStamp);$(TailwindCss)">
-        <Exec Command="&quot;$(TailwindExe)&quot; --input Styles/app.css --output wwwroot/css/site.css $(TailwindMinify)" WorkingDirectory="$(MSBuildProjectDirectory)" />
-        <Touch Files="$(TailwindStamp)" AlwaysCreate="true" />
+    <Target Name="GenerateSiteCss" BeforeTargets="BeforeBuild" Inputs="@(SiteCssInput)" Outputs="$(BaseIntermediateOutputPath)sitecss.stamp;wwwroot/css/site.css">
+        <MakeDir Directories="wwwroot/css" />
+        <WriteLinesToFile File="wwwroot/css/site.css" Lines=".max-w-lg{max-width:32rem}.border-emerald-500{border-color:#10b981}body{background:#f1f5f9}" Overwrite="true" />
+        <Touch Files="$(BaseIntermediateOutputPath)sitecss.stamp" AlwaysCreate="true" />
     </Target>
 
 </Project>

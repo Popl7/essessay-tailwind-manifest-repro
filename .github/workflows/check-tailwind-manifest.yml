@@ -1,0 +1,36 @@
+name: Check Tailwind static web assets manifest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Report runner resources
+        run: |
+          nproc
+          free -h
+          docker info
+
+      - name: Build (no cache)
+        run: docker build --no-cache -t essessay-repro -f Essessay/Dockerfile .
+
+      - name: Check whether the css/site.css route made it into the manifest
+        run: |
+          docker run --rm --entrypoint sh essessay-repro -c "
+            echo '--- disk ---'
+            ls -la /app/wwwroot/css/ 2>&1
+            echo '--- manifest routes for site.css ---'
+            grep -o '\"Route\":\"[^\"]*site.css[^\"]*\"' /app/Essessay.staticwebassets.endpoints.json
+          " | tee /tmp/result.txt
+          if grep -q '"Route":"css/site.css"' /tmp/result.txt; then
+            echo "PASS: css/site.css route is present in the manifest"
+          else
+            echo "FAIL: css/site.css route is MISSING from the manifest (bug reproduced)"
+            exit 1
+          fi

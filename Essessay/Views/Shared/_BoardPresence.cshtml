@@ -1,0 +1,23 @@
+@model Essessay.Models.BoardPresenceViewModel
+
+@* Replaced (not morphed) on every join, leave, rename, keystroke and heartbeat. *@
+<div id="board-presence" class="flex flex-wrap items-center gap-2">
+    <span class="card-label">
+        @Model.Viewers.Count @(Model.Viewers.Count == 1 ? "viewer" : "viewers")
+    </span>
+    @foreach (var viewer in Model.Viewers)
+    {
+        @* The server doesn't know which connection is reading this fragment — one
+           render goes to everyone — so "you" is decided on the client by comparing
+           the rendered connection id with the $me.id signal. *@
+        <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200"
+              data-class="{'ring-2 ring-blue-500': $me.id === '@viewer.ConnectionId'}">
+            @viewer.Name
+            <span class="font-mono text-gray-400 dark:text-gray-500">@viewer.ConnectionId[..4]</span>
+            @if (viewer.IsTyping)
+            {
+                <span class="text-blue-600 dark:text-blue-400">typing…</span>
+            }
+        </span>
+    }
+</div>

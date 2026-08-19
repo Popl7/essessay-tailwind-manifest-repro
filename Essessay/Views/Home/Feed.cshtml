@@ -1,0 +1,15 @@
+@{
+    ViewData["Title"] = "Feed";
+}
+
+<div class="mx-auto max-w-xl">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Infinite scroll</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-300">
+        Scroll down — <code class="rounded bg-gray-100 px-1 py-0.5 text-blue-600 dark:bg-gray-800">data-on-intersect</code>
+        loads the next page as the sentinel enters the viewport (5 pages total).
+    </p>
+
+    <div id="feed" class="mt-6 space-y-3"></div>
+
+    <partial name="_Sentinel" model="(int?)1" />
+</div>

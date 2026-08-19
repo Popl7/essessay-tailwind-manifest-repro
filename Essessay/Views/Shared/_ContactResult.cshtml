@@ -1,0 +1,8 @@
+@model Essessay.Models.ContactForm
+
+@* Inner-patched into #contact-result, so this partial has no wrapper of its own. *@
+<div class="alert alert-success">
+    <p class="font-semibold">Thanks @Model.Name — message received.</p>
+    <p class="mt-1">We'd reply to @Model.Email if this demo had an outbox.</p>
+    <p class="mt-1 text-xs">Submitted via: @Model.Source</p>
+</div>

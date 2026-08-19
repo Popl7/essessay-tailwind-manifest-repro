@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Live Stream";
+}
+
+<div class="mx-auto max-w-xl">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Live stream</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-300">The server holds the SSE connection open and pushes a new fragment every second.</p>
+
+    <div class="mt-6 flex items-center gap-3">
+        <button data-on:click="@@get('/api/clock')"
+                data-indicator:streaming
+                data-attr:disabled="$streaming"
+                class="btn-primary">
+            Start live clock
+        </button>
+        <span data-show="$streaming" class="text-sm text-gray-500 dark:text-gray-400">Streaming…</span>
+    </div>
+
+    @{ var initialClock = new Essessay.Models.ClockViewModel(DateTimeOffset.Now, 0, false); }
+    <div class="mt-4">
+        <partial name="_Clock" model="initialClock" />
+    </div>
+</div>

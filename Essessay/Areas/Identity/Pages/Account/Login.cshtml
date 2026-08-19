@@ -1,0 +1,45 @@
+@page
+@model LoginModel
+
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<div class="mx-auto max-w-md">
+    <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">@ViewData["Title"]</h1>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Use a local account to log in.</p>
+
+    <form id="account" method="post" class="card mt-6 space-y-4">
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+
+        <div>
+            <label asp-for="Input.Email" class="form-label">Email</label>
+            <input asp-for="Input.Email" class="form-input" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+            <span asp-validation-for="Input.Email" class="field-error"></span>
+        </div>
+
+        <div>
+            <label asp-for="Input.Password" class="form-label">Password</label>
+            <input asp-for="Input.Password" class="form-input" autocomplete="current-password" aria-required="true" placeholder="password" />
+            <span asp-validation-for="Input.Password" class="field-error"></span>
+        </div>
+
+        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <input asp-for="Input.RememberMe" class="form-checkbox" />
+            @Html.DisplayNameFor(m => m.Input.RememberMe)
+        </label>
+
+        <button id="login-submit" type="submit" class="btn-primary w-full">Log in</button>
+
+        <div class="space-y-1 pt-2 text-sm">
+            <p><a id="forgot-password" class="link" asp-page="./ForgotPassword">Forgot your password?</a></p>
+            <p><a class="link" asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Register as a new user</a></p>
+            <p><a id="resend-confirmation" class="link" asp-page="./ResendEmailConfirmation">Resend email confirmation</a></p>
+        </div>
+    </form>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,22 @@
+@{
+    ViewData["Title"] = "Get Data";
+}
+
+<div class="mx-auto max-w-xl">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Server fragment over SSE</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-300">Click the button to fetch a server-rendered fragment via a one-shot SSE patch.</p>
+
+    <div class="mt-6 flex items-center gap-3">
+        <button data-on:click="@@get('/api/endpoint')"
+                data-indicator:fetching
+                data-attr:disabled="$fetching"
+                class="btn-primary">
+            Get Data
+        </button>
+        <span data-show="$fetching" class="text-sm text-gray-500 dark:text-gray-400">Loading…</span>
+    </div>
+
+    <div class="mt-6">
+        <partial name="_EndpointCard" model="DateTimeOffset.UtcNow" />
+    </div>
+</div>

@@ -1,0 +1,12 @@
+@model Essessay.Models.ClockViewModel
+
+<div id="clock" class="card">
+    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Live server stream <code class="rounded bg-gray-100 px-1 py-0.5 text-blue-600 dark:bg-gray-900">/api/clock</code></p>
+    <p class="mt-1 font-mono text-2xl font-semibold text-gray-900 dark:text-gray-100">@Model.Now.ToString("HH:mm:ss")</p>
+    <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+        <div class="h-2 rounded-full bg-blue-600 transition-all duration-500" style="width: @(Model.Percent)%"></div>
+    </div>
+    <p class="mt-2 text-xs @(Model.Done ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500")">
+        @(Model.Done ? "✓ Stream complete" : $"Streaming… {Model.Percent}%")
+    </p>
+</div>

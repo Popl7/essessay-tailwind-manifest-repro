@@ -1,0 +1,39 @@
+@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="mx-auto max-w-md">
+    <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">@ViewData["Title"]</h1>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Create a new account.</p>
+
+    <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="card mt-6 space-y-4">
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+
+        <div>
+            <label asp-for="Input.Email" class="form-label">Email</label>
+            <input asp-for="Input.Email" class="form-input" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+            <span asp-validation-for="Input.Email" class="field-error"></span>
+        </div>
+
+        <div>
+            <label asp-for="Input.Password" class="form-label">Password</label>
+            <input asp-for="Input.Password" class="form-input" autocomplete="new-password" aria-required="true" placeholder="password" />
+            <span asp-validation-for="Input.Password" class="field-error"></span>
+        </div>
+
+        <div>
+            <label asp-for="Input.ConfirmPassword" class="form-label">Confirm Password</label>
+            <input asp-for="Input.ConfirmPassword" class="form-input" autocomplete="new-password" aria-required="true" placeholder="password" />
+            <span asp-validation-for="Input.ConfirmPassword" class="field-error"></span>
+        </div>
+
+        <button id="registerSubmit" type="submit" class="btn-primary w-full">Register</button>
+    </form>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

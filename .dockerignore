@@ -1,0 +1,29 @@
+﻿**/.dockerignore
+**/.env
+**/.git
+**/.gitignore
+**/.project
+**/.settings
+**/.toolstarget
+**/.vs
+**/.vscode
+**/.idea
+**/*.*proj.user
+**/*.dbmdl
+**/*.jfm
+**/azds.yaml
+**/bin
+**/charts
+**/docker-compose*
+**/Dockerfile*
+**/node_modules
+**/npm-debug.log
+**/obj
+**/secrets.dev.yaml
+**/values.dev.yaml
+LICENSE
+README.md
+# Host-local tool cache: the pinned Tailwind CLI is downloaded per platform, and a
+# macOS binary copied into a Linux image fails with "Exec format error" — the build
+# stage has to fetch its own.
+**/tools/tailwind

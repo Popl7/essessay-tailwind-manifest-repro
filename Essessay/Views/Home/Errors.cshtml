@@ -1,0 +1,149 @@
+@{
+    ViewData["Title"] = "Errors & Retries";
+}
+
+@*
+    Everything on this page is logged by one `data-on:datastar-fetch` handler.
+    `datastar-fetch` is dispatched on `document`, and Datastar knows to attach the
+    listener there — so a single handler anywhere on the page sees every request.
+*@
+<div class="mx-auto max-w-2xl"
+     data-signals="{log: ''}"
+     data-on:datastar-fetch="$log = `${new Date().toLocaleTimeString()}  ${evt.detail.type}  ${evt.detail.el.id || evt.detail.el.tagName.toLowerCase()}${evt.detail.argsRaw.status ? '  status=' + evt.detail.argsRaw.status : ''}\n` + $log">
+
+    <h1 class="page-title">Errors, retries &amp; resilience</h1>
+    <p class="page-lead">
+        What happens when a request fails, how to make Datastar retry it, and how to keep a
+        stream alive. Watch the log at the bottom — it records every
+        <code class="code-inline">datastar-fetch</code> event on the page.
+    </p>
+
+    <div class="mt-6 space-y-6">
+
+        @* ── 1. The lifecycle events ───────────────────────────────────────── *@
+        <div class="card space-y-3">
+            <h2 class="card-title">1. The fetch lifecycle</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                Every request fires <code class="code-inline">started</code> →
+                (<code class="code-inline">datastar-patch-elements</code> /
+                <code class="code-inline">datastar-patch-signals</code> per SSE event) →
+                <code class="code-inline">finished</code>. A response with status ≥ 400 fires
+                <code class="code-inline">error</code> first, with the status in
+                <code class="code-inline">evt.detail.argsRaw.status</code>. Note that with the
+                default <code class="code-inline">retry: 'auto'</code> a 500 is <em>not</em> retried —
+                the request just ends.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="btn-ok" class="btn-primary"
+                        data-on:click="@@get('/api/flaky')"
+                        data-indicator:ok
+                        data-attr:disabled="$ok">
+                    Succeed
+                </button>
+                <button id="btn-fail" class="btn-danger"
+                        data-on:click="@@get('/api/flaky?fail=true')"
+                        data-indicator:failing
+                        data-attr:disabled="$failing">
+                    Fail (500)
+                </button>
+            </div>
+        </div>
+
+        @* ── 2. Retries ────────────────────────────────────────────────────── *@
+        <div class="card space-y-3">
+            <h2 class="card-title">2. Retrying a failed request</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                <code class="code-inline">retry: 'error'</code> re-opens the request on a 4xx/5xx
+                (<code class="code-inline">'always'</code> also retries after a clean close,
+                <code class="code-inline">'never'</code> disables it). The wait starts at
+                <code class="code-inline">retryInterval</code> and is multiplied by
+                <code class="code-inline">retryScaler</code> each round, capped by
+                <code class="code-inline">retryMaxWait</code> and
+                <code class="code-inline">retryMaxCount</code>.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+                @* Fails twice, succeeds on the third attempt — the log shows two `retrying` events. *@
+                <button id="btn-unstable" class="btn-primary"
+                        data-on:click="@@get('/api/flaky/unstable', {retry: 'error', retryInterval: 400, retryScaler: 1, retryMaxCount: 3})"
+                        data-indicator:unstable
+                        data-attr:disabled="$unstable">
+                    Unstable endpoint (fails 2 of 3)
+                </button>
+                @* Never succeeds — after retryMaxCount the log ends with `retries-failed`. *@
+                <button id="btn-exhaust" class="btn-danger"
+                        data-on:click="@@get('/api/flaky?fail=true', {retry: 'error', retryInterval: 300, retryScaler: 1, retryMaxCount: 2})">
+                    Always fails (exhaust retries)
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Exhausting the retries also logs a <code class="code-inline">FetchFailed</code> error in
+                the browser console — that's Datastar telling you it gave up.
+            </p>
+        </div>
+
+        @* ── 3. openWhenHidden ─────────────────────────────────────────────── *@
+        <div class="card space-y-3">
+            <h2 class="card-title">3. Keeping a stream open in a hidden tab</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                For <code class="code-inline">@@get</code>, <code class="code-inline">openWhenHidden</code>
+                defaults to <strong>false</strong>: hiding the tab aborts the connection and it is
+                re-opened (from the start) when the tab is visible again. Start one of these clocks,
+                switch tabs for a few seconds and come back — the default one restarts its 20-tick
+                run, the other one kept counting.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="btn-clock-default" class="btn-secondary"
+                        data-on:click="@@get('/api/clock')"
+                        data-indicator="clockDefault"
+                        data-attr:disabled="$clockDefault">
+                    Start (default)
+                </button>
+                <button id="btn-clock-hidden" class="btn-primary"
+                        data-on:click="@@get('/api/clock', {openWhenHidden: true})"
+                        data-indicator="clockHidden"
+                        data-attr:disabled="$clockHidden">
+                    Start (openWhenHidden: true)
+                </button>
+            </div>
+            @{ var initialClock = new Essessay.Models.ClockViewModel(DateTimeOffset.Now, 0, false); }
+            <partial name="_Clock" model="initialClock"/>
+        </div>
+
+        @* ── 4. requestCancellation ────────────────────────────────────────── *@
+        <div class="card space-y-3">
+            <h2 class="card-title">4. Cancelling in-flight requests</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                <code class="code-inline">/api/flaky/slow</code> waits 1.5s, then appends one line.
+                By default (<code class="code-inline">requestCancellation: 'auto'</code>) a second
+                request to the same action + URL aborts the first, which also cancels the
+                <code class="code-inline">CancellationToken</code> server-side so it writes nothing.
+                With <code class="code-inline">'disabled'</code> both requests run to completion.
+                Click each button twice, fast.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+                <button id="btn-slow-auto" class="btn-secondary"
+                        data-on:click="@@get('/api/flaky/slow?mode=auto')">
+                    Slow ×2 (auto — cancels)
+                </button>
+                <button id="btn-slow-disabled" class="btn-secondary"
+                        data-on:click="@@get('/api/flaky/slow?mode=disabled', {requestCancellation: 'disabled'})">
+                    Slow ×2 (disabled — both land)
+                </button>
+            </div>
+            <div id="slow-log" class="space-y-2"></div>
+        </div>
+
+        @* ── The log ───────────────────────────────────────────────────────── *@
+        <div class="card space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="card-title">datastar-fetch log</h2>
+                <button class="btn-secondary" data-on:click="$log = ''">Clear</button>
+            </div>
+            <pre class="log-pane" data-text="$log || 'No requests yet.'"></pre>
+        </div>
+
+        @* Patched by every successful request above (outer morph of #flaky-result). *@
+        @{ var noResultYet = new Essessay.Models.FlakyViewModel("/api/flaky", 0, DateTimeOffset.Now); }
+        <partial name="_FlakyResult" model="noResultYet"/>
+    </div>
+</div>

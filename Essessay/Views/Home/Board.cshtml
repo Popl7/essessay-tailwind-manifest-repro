@@ -1,0 +1,111 @@
+@model IReadOnlyList<Essessay.Models.BoardCard>
+@{
+    ViewData["Title"] = "Board";
+}
+
+@*
+    The connection light can't come from data-indicator: an indicator is true for
+    the whole lifetime of the request, and Datastar's automatic retries happen
+    *inside* that one request — so it would read "connected" while the stream is
+    actually down. The datastar-fetch event types do know the difference.
+*@
+<div class="mx-auto max-w-4xl"
+     data-signals="{newCard: '', rename: '', me: {id: '', name: ''}, board: {beat: ''}, streaming: false}"
+     data-on:datastar-fetch="evt.detail.el.id === 'board-stream' && ($streaming = evt.detail.type === 'started' || evt.detail.type.startsWith('datastar-'))">
+
+    <h1 class="page-title">A board everyone shares</h1>
+    <p class="page-lead">
+        Every client holds one long-lived SSE connection. Changes don't patch the DOM of
+        whoever made them — they go to the server, which renders the fragment once and
+        broadcasts it to every connection, the author's included.
+        <strong>Open this page in a second tab</strong> (or another browser) to see it.
+    </p>
+
+    @*
+        One stream for the whole page. `retry: 'always'` re-opens it after a clean
+        close as well as an error, and `openWhenHidden` keeps you present in the
+        viewer list while the tab is in the background. The id is what the handler
+        above matches on, so mutation requests don't touch the connection light.
+    *@
+    <div id="board-stream"
+         data-init="@@get('/api/board/stream', {retry: 'always', retryInterval: 2000, retryScaler: 1, retryMaxCount: 1000, openWhenHidden: true})"></div>
+
+    <div class="mt-6 space-y-6">
+
+        @* ── Who's here ────────────────────────────────────────────────────── *@
+        <div class="card space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="card-title">Who's here</h2>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="h-2.5 w-2.5 rounded-full"
+                          data-class="{'bg-green-500': $streaming, 'bg-amber-500': !$streaming}"></span>
+                    <span class="text-gray-500 dark:text-gray-400"
+                          data-text="$streaming ? `connected · heartbeat ${$board.beat}` : 'reconnecting…'"></span>
+                </div>
+            </div>
+
+            <partial name="_BoardPresence" model="new Essessay.Models.BoardPresenceViewModel([])"/>
+
+            @*
+                The rename box lives outside the presence bar on purpose: that bar is
+                replaced wholesale every few seconds, which would throw away whatever
+                you were typing. (data-preserve-attr / data-ignore-morph are the other
+                way out — see the Polling page.)
+            *@
+            <div class="flex flex-wrap items-end gap-2">
+                <div class="grow">
+                    <label class="form-label">
+                        You are <span class="font-semibold" data-text="$me.name || '…'"></span>
+                    </label>
+                    <input class="form-input" data-bind="rename" placeholder="Pick another name…"
+                           data-on:keydown="evt.key === 'Enter' && @@post('/api/board/name', {headers: {'X-CSRF-TOKEN': $csrf}})"/>
+                </div>
+                <button class="btn-secondary"
+                        data-on:click="@@post('/api/board/name', {headers: {'X-CSRF-TOKEN': $csrf}})">
+                    Rename
+                </button>
+            </div>
+        </div>
+
+        @* ── The board ─────────────────────────────────────────────────────── *@
+        <div class="card space-y-4">
+            <h2 class="card-title">The board</h2>
+            <div class="flex items-center gap-2">
+                @*
+                    __throttle sends at most one "I'm typing" per second while you type,
+                    and filterSignals keeps the request down to the `me.*` signals.
+                *@
+                <input class="form-input" data-bind="newCard" placeholder="New card…"
+                       data-on:input__throttle.1s="@@post('/api/board/typing', {filterSignals: {include: /^me\./}, headers: {'X-CSRF-TOKEN': $csrf}})"
+                       data-on:keydown="evt.key === 'Enter' && @@post('/api/board/cards', {headers: {'X-CSRF-TOKEN': $csrf}})"/>
+                <button class="btn-primary shrink-0"
+                        data-on:click="@@post('/api/board/cards', {headers: {'X-CSRF-TOKEN': $csrf}})">
+                    Add
+                </button>
+            </div>
+
+            <partial name="_Board" model="Model"/>
+        </div>
+
+        @* ── Reconnecting ──────────────────────────────────────────────────── *@
+        <div class="card space-y-3">
+            <h2 class="card-title">Dropping and resuming the stream</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                Every broadcast carries an <code class="code-inline">EventId</code>. When the
+                connection breaks, Datastar re-opens it with a
+                <code class="code-inline">last-event-id</code> header, and the server replays
+                only what was missed from its buffer — or, if you're further behind than the
+                buffer reaches, re-renders the whole board instead.
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+                This button closes your stream server-side and <em>then</em> adds a card, so
+                the change happens while you're disconnected. The light above goes amber,
+                and about two seconds later the card appears from the replay.
+            </p>
+            <button class="btn-secondary"
+                    data-on:click="@@post('/api/board/drop', {headers: {'X-CSRF-TOKEN': $csrf}})">
+                Drop my connection
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+/* Toggle dark mode via a `.dark` class on <html> (set by the theme toggle),
+   instead of the default prefers-color-scheme media query. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Tell Tailwind where classes live. All markup (including Datastar SSE
+  fragments) is rendered from Razor views/partials, so scanning .cshtml
+  covers everything. If you ever emit class strings from C#, add that path
+  back here — and never build class names dynamically ($"bg-{c}-500"),
+  Tailwind can only see complete literal class strings.
+*/
+@source "../Views/**/*.cshtml";
+@source "../Areas/**/*.cshtml";
+
+/* Sticky footer, migrated from the old template site.css */
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+/* ASP.NET unobtrusive validation: hide the summary box when there are no errors. */
+.validation-summary-valid {
+    display: none;
+}
+
+/*
+  Reusable component classes built from utilities with @apply.
+  Prefer these in markup (class="btn-primary") over repeating utility strings.
+*/
+@layer components {
+    .card {
+        @apply rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600;
+    }
+
+    .btn-danger {
+        @apply inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    }
+
+    /* Page heading + intro paragraph, identical on every demo page. */
+    .page-title {
+        @apply text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100;
+    }
+
+    .page-lead {
+        @apply mt-2 text-gray-600 dark:text-gray-300;
+    }
+
+    /* Small caption above a value inside a card. */
+    .card-label {
+        @apply text-sm font-medium text-gray-500 dark:text-gray-400;
+    }
+
+    .card-title {
+        @apply text-lg font-semibold text-gray-900 dark:text-gray-100;
+    }
+
+    /* Inline code chip, e.g. an attribute or endpoint name in prose. */
+    .code-inline {
+        @apply rounded bg-gray-100 px-1 py-0.5 text-blue-600 dark:bg-gray-800 dark:text-blue-400;
+    }
+
+    /*
+      Placeholder for an empty board column. Doing it in CSS means an append patch
+      never has to delete a placeholder element first.
+
+      `:not(:has(> *))` rather than `:empty`: removing the last card leaves the
+      whitespace text nodes Razor rendered between the cards behind, so the
+      container is childless but not empty.
+    */
+    .board-column-cards:not(:has(> *))::after {
+        content: "nothing here";
+        display: block;
+        border-radius: var(--radius-md);
+        border: 1px dashed var(--color-gray-300);
+        padding: calc(var(--spacing) * 3);
+        text-align: center;
+        font-size: var(--text-xs);
+        color: var(--color-gray-400);
+    }
+
+    .dark .board-column-cards:not(:has(> *))::after {
+        border-color: var(--color-gray-700);
+        color: var(--color-gray-500);
+    }
+
+    /* Scrolling monospace output pane (fetch logs, echoed JSON, …). */
+    .log-pane {
+        @apply max-h-56 overflow-auto whitespace-pre-wrap break-all rounded-md bg-gray-900 p-3 font-mono text-xs leading-relaxed text-gray-100 dark:bg-black;
+    }
+
+    .form-label {
+        @apply block text-sm font-medium text-gray-700 dark:text-gray-300;
+    }
+
+    .form-input {
+        @apply mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:disabled:bg-gray-800 dark:disabled:text-gray-400;
+    }
+
+    /*
+      Chrome paints autofilled fields with its own light background, which looks
+      broken in dark mode. An inset shadow is the only background it respects.
+    */
+    .dark .form-input:-webkit-autofill,
+    .dark .form-input:-webkit-autofill:hover,
+    .dark .form-input:-webkit-autofill:focus {
+        box-shadow: 0 0 0 1000px var(--color-gray-900) inset;
+        -webkit-text-fill-color: var(--color-gray-100);
+        caret-color: var(--color-gray-100);
+    }
+
+    .form-checkbox {
+        @apply h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500;
+    }
+
+    .field-error {
+        @apply mt-1 block text-sm text-red-600 dark:text-red-400;
+    }
+
+    /* Emitted by asp-for on a field whose ModelState entry has an error. */
+    .input-validation-error {
+        @apply border-red-500 focus:border-red-500 focus:ring-red-500;
+    }
+
+    .validation-summary {
+        @apply rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300;
+    }
+
+    .link {
+        @apply text-blue-600 hover:underline dark:text-blue-400;
+    }
+
+    /* Top navigation links */
+    .nav-link-top {
+        @apply text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-gray-300 dark:hover:text-white;
+    }
+
+    /* Vertical sidebar nav (Manage pages). `.active` is emitted by ManageNavPages. */
+    .nav-link-side {
+        @apply block rounded-md px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white;
+    }
+
+    .nav-link-side.active {
+        @apply bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300;
+    }
+
+    /* Status / alert banners */
+    .alert {
+        @apply rounded-md p-3 text-sm;
+    }
+
+    .alert-success {
+        @apply bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300;
+    }
+
+    .alert-danger {
+        @apply bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300;
+    }
+
+    .alert-warning {
+        @apply bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-200;
+    }
+
+    .alert-info {
+        @apply bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300;
+    }
+
+    /* Links inside colored alert banners */
+    .alert a {
+        @apply font-medium underline;
+    }
+
+    /*
+      Connection banner (see _Layout). Sticky rather than fixed: while it is up it
+      pushes the header down instead of covering the nav, and it stays in view when
+      the page is scrolled. data-show removes it from the flow entirely when hidden.
+    */
+    .connection-banner {
+        @apply sticky top-0 z-50 px-4 py-2 text-center text-sm font-medium;
+    }
+
+    /* Solid fills, not the tinted .alert-* palette: this has to read at a glance
+       outdoors on a phone, and it sits over page content rather than inside a card. */
+    .connection-banner-down {
+        @apply bg-amber-500 text-amber-950;
+    }
+
+    .connection-banner-up {
+        @apply bg-green-600 text-white;
+    }
+
+    /*
+      The package _StatusMessage partial (used in dev where the RCL view shadows
+      our same-path override) renders a Bootstrap `btn-close` dismiss button.
+      It has no Bootstrap JS to act on, so hide it — our own override has no button.
+    */
+    .btn-close {
+        @apply hidden;
+    }
+
+    /*
+      dotnet watch's browser-refresh script shows this element on every hot reload,
+      including a CSS-only one — which is all Tailwind ever triggers, since ./dev.sh's
+      whole point is pushing site.css in without a rebuild. A known SDK bug leaves it
+      empty instead of populating it with a compiler error, so it renders as a grey
+      overlay over the page with nothing in it: https://github.com/dotnet/sdk/issues/51825.
+      Hidden only while empty, so a real compile error still shows the genuine overlay.
+    */
+    #dotnet-compile-error:empty {
+        visibility: hidden;
+        display: none;
+    }
+}

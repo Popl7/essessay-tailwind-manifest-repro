@@ -1,0 +1,15 @@
+@model Essessay.Models.FlakyViewModel
+
+<div id="flaky-result" class="card">
+    @if (Model.Attempt == 0)
+    {
+        <p class="card-label">Last successful response</p>
+        <p class="mt-1 text-lg font-semibold text-gray-400 dark:text-gray-500">Nothing yet.</p>
+    }
+    else
+    {
+        <p class="card-label">Succeeded — <code class="code-inline">@Model.Label</code></p>
+        <p class="mt-1 text-lg font-semibold text-green-600 dark:text-green-400">Attempt #@Model.Attempt went through 🎉</p>
+        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Served at @Model.At.ToString("HH:mm:ss.fff")</p>
+    }
+</div>

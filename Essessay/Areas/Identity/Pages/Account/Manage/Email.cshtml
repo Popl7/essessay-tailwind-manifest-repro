@@ -1,0 +1,43 @@
+@page
+@model EmailModel
+@{
+    ViewData["Title"] = "Manage Email";
+    ViewData["ActivePage"] = ManageNavPages.Email;
+}
+
+<h3 class="card-title">@ViewData["Title"]</h3>
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<form id="email-form" method="post" class="card mt-4 max-w-lg space-y-4">
+    <div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+
+    <div>
+        <label asp-for="Email" class="form-label"></label>
+        @if (Model.IsEmailConfirmed)
+        {
+            @* The checkmark sits inside the field; top-1 matches the input's own mt-1. *@
+            <div class="relative">
+                <input asp-for="Email" class="form-input pr-9" placeholder="Please enter your email." disabled />
+                <span class="absolute inset-y-0 right-3 top-1 flex items-center text-sm font-medium text-green-600 dark:text-green-400"
+                      title="Confirmed">✓</span>
+            </div>
+        }
+        else
+        {
+            <input asp-for="Email" class="form-input" placeholder="Please enter your email." disabled />
+            <button id="email-verification" type="submit" asp-page-handler="SendVerificationEmail" class="link mt-1 text-sm">Send verification email</button>
+        }
+    </div>
+
+    <div>
+        <label asp-for="Input.NewEmail" class="form-label"></label>
+        <input asp-for="Input.NewEmail" class="form-input" autocomplete="email" aria-required="true" placeholder="Please enter new email." />
+        <span asp-validation-for="Input.NewEmail" class="field-error"></span>
+    </div>
+
+    <button id="change-email-button" type="submit" asp-page-handler="ChangeEmail" class="btn-primary w-full">Change email</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,8 @@
+@model Essessay.Models.SlowRequestViewModel
+
+<div class="rounded-md border border-gray-200 px-3 py-2 text-sm dark:border-gray-700">
+    <span class="font-semibold">@Model.Mode</span>
+    <span class="text-gray-500 dark:text-gray-400">
+        — started @Model.StartedAt.ToString("HH:mm:ss.fff"), completed @Model.FinishedAt.ToString("HH:mm:ss.fff")
+    </span>
+</div>

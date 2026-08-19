@@ -1,0 +1,105 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>aspnet-Essessay-d3fd2f43-3ddf-4eba-9c1e-24babae4b7e9</UserSecretsId>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Update="app.db" CopyToOutputDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
+    </ItemGroup>
+
+    <!-- Top-level statements compile to an internal Program class; the tests host it. -->
+    <ItemGroup>
+        <InternalsVisibleTo Include="Essessay.Tests" />
+        <InternalsVisibleTo Include="Essessay.BrowserTests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
+        <!-- `dotnet ef` only. PrivateAssets keeps its design-time tree (and the old
+             System.Security.Cryptography.Xml underneath it) out of Essessay.Tests. -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.1" PrivateAssets="all" />
+        <PackageReference Include="StackExchange.Redis" Version="3.1.13" />
+        <PackageReference Include="StarFederation.Datastar" Version="1.4.0" />
+        <!-- EF Core 10.0.1 asks for 2.1.11, whose bundled SQLite is older than 3.50.2
+             (GHSA-2m69-gcr7-jv3q). Same 2.1.x line, so this is only a version bump. -->
+        <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+    </ItemGroup>
+
+    <!-- No `Content Include="..\.dockerignore"` here: it only ever showed the file in
+         Solution Explorer, and .dockerignore excludes itself from the build context,
+         so publishing inside the image failed trying to copy a file that is not there. -->
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\js\site.js" />
+    </ItemGroup>
+
+    <!-- ==== Tailwind CSS (standalone CLI, no Node) ==== -->
+    <PropertyGroup>
+        <TailwindVersion>v4.3.3</TailwindVersion>
+        <TailwindDir>$(MSBuildProjectDirectory)/tools/tailwind</TailwindDir>
+        <TailwindExe>$(TailwindDir)/tailwindcss-$(TailwindVersion)$(TailwindExeSuffix)</TailwindExe>
+        <TailwindCss>$(MSBuildProjectDirectory)/wwwroot/css/site.css</TailwindCss>
+        <!-- Readable CSS (and a faster run) while developing; minified everywhere else. -->
+        <TailwindMinify Condition="'$(Configuration)' != 'Debug'">--minify</TailwindMinify>
+        <TailwindStamp>$(BaseIntermediateOutputPath)tailwind.stamp</TailwindStamp>
+        <TailwindFlags>$(BaseIntermediateOutputPath)tailwind.flags</TailwindFlags>
+    </PropertyGroup>
+
+    <!-- The globs @source'd from Styles/app.css: a change to any of them changes the CSS.
+         tailwind.flags records how the CSS was last generated, so a Debug build after a
+         Release one regenerates it unminified instead of keeping Release's output. -->
+    <ItemGroup>
+        <TailwindInput Include="Styles/**/*.css;Views/**/*.cshtml;Areas/**/*.cshtml;$(TailwindFlags)" />
+    </ItemGroup>
+
+    <Target Name="RecordTailwindFlags" BeforeTargets="BuildTailwindCss">
+        <MakeDir Directories="$(BaseIntermediateOutputPath)" />
+        <!-- WriteOnlyWhenDifferent leaves the timestamp alone when nothing changed,
+             so this does not defeat the incremental check below. -->
+        <WriteLinesToFile File="$(TailwindFlags)" Lines="$(TailwindMinify)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    </Target>
+    <PropertyGroup>
+        <_Arch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString())</_Arch>
+        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(_Arch)' == 'Arm64'">tailwindcss-macos-arm64</TailwindAsset>
+        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(_Arch)' == 'X64'">tailwindcss-macos-x64</TailwindAsset>
+        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(_Arch)' == 'X64'">tailwindcss-linux-x64</TailwindAsset>
+        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(_Arch)' == 'Arm64'">tailwindcss-linux-arm64</TailwindAsset>
+        <TailwindAsset Condition="$([MSBuild]::IsOSPlatform('Windows'))">tailwindcss-windows-x64.exe</TailwindAsset>
+        <TailwindExeSuffix Condition="$([MSBuild]::IsOSPlatform('Windows'))">.exe</TailwindExeSuffix>
+    </PropertyGroup>
+
+    <!-- Nothing to do once the pinned binary is on disk; the condition keeps the
+         chmod/codesign Execs off every subsequent build. -->
+    <Target Name="EnsureTailwind" BeforeTargets="BuildTailwindCss" Condition="!Exists('$(TailwindExe)') And '$(SkipTailwindBuild)' != 'true'">
+        <MakeDir Directories="$(TailwindDir)" />
+        <DownloadFile SourceUrl="https://github.com/tailwindlabs/tailwindcss/releases/download/$(TailwindVersion)/$(TailwindAsset)" DestinationFolder="$(TailwindDir)" DestinationFileName="tailwindcss-$(TailwindVersion)$(TailwindExeSuffix)" Retries="2" />
+        <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="chmod +x &quot;$(TailwindExe)&quot;" />
+        <!-- Apple Silicon SIGKILLs unsigned downloaded arm64 binaries; clear provenance + ad-hoc sign. -->
+        <Exec Condition="$([MSBuild]::IsOSPlatform('OSX'))" Command="xattr -c &quot;$(TailwindExe)&quot; ; codesign -s - -f &quot;$(TailwindExe)&quot;" />
+    </Target>
+
+    <!-- Incremental: skipped entirely when no @source'd file has changed since the last run.
+         `dotnet watch` never reaches this target anyway (a .cshtml edit is hot-reloaded, not
+         rebuilt), which is why ./dev.sh runs the CLI in watch mode alongside it.
+
+         SkipTailwindBuild also skips it: this target races the SDK's own static web assets
+         discovery within a single MSBuild invocation, and losing that race silently drops
+         wwwroot/css/site.css from Essessay.staticwebassets.endpoints.json (seen in practice
+         on Render's build machines, not locally). The Dockerfile generates the CSS itself,
+         standalone, before MSBuild starts, and passes this to skip the redundant, racy rerun. -->
+    <Target Name="BuildTailwindCss" BeforeTargets="BeforeBuild" Inputs="@(TailwindInput)" Outputs="$(TailwindStamp);$(TailwindCss)" Condition="'$(SkipTailwindBuild)' != 'true'">
+        <Exec Command="&quot;$(TailwindExe)&quot; --input Styles/app.css --output wwwroot/css/site.css $(TailwindMinify)" WorkingDirectory="$(MSBuildProjectDirectory)" />
+        <Touch Files="$(TailwindStamp)" AlwaysCreate="true" />
+    </Target>
+
+</Project>

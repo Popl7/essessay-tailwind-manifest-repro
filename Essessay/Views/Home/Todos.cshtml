@@ -1,0 +1,36 @@
+@model IReadOnlyList<Essessay.Services.Todo>
+@{
+    ViewData["Title"] = "Todos";
+}
+
+<div class="mx-auto max-w-xl">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Todos (CRUD)</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-300">
+        <code class="rounded bg-gray-100 px-1 py-0.5 text-blue-600 dark:bg-gray-800">@@post</code> to add,
+        <code class="rounded bg-gray-100 px-1 py-0.5 text-blue-600 dark:bg-gray-800">@@patch</code> to toggle,
+        <code class="rounded bg-gray-100 px-1 py-0.5 text-blue-600 dark:bg-gray-800">@@delete</code> +
+        <code class="rounded bg-gray-100 px-1 py-0.5 text-blue-600 dark:bg-gray-800">RemoveElementAsync</code> to remove.
+        Requests carry an antiforgery header. Newest first.
+    </p>
+
+    <div class="card mt-6 space-y-4" data-signals="{newTodo: ''}">
+        <div class="flex items-center gap-2">
+            @* Signal name in the value, not the key — HTML lowercases attribute
+               names, so data-bind:newTodo would bind to `newtodo` instead and the
+               server's newTodo patch would not clear this input. *@
+            <input class="form-input" data-bind="newTodo" placeholder="New todo…"
+                   data-on:keydown="evt.key === 'Enter' && @@post('/api/todos', {headers: {'X-CSRF-TOKEN': $csrf}})" />
+            <button class="btn-primary shrink-0"
+                    data-on:click="@@post('/api/todos', {headers: {'X-CSRF-TOKEN': $csrf}})">
+                Add
+            </button>
+        </div>
+
+        <div id="todo-list" class="space-y-2">
+            @foreach (var todo in Model)
+            {
+                <partial name="_TodoItem" model="todo" />
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,28 @@
+@{
+    if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout != null)
+    {
+        Layout = parentLayout.ToString();
+    }
+    else
+    {
+        Layout = "/Areas/Identity/Pages/_Layout.cshtml";
+    }
+}
+
+<div class="mx-auto max-w-4xl">
+    <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Manage your account</h1>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Change your account settings</p>
+
+    <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[12rem_1fr]">
+        <aside>
+            <partial name="_ManageNav" />
+        </aside>
+        <div class="min-w-0">
+            @RenderBody()
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}

@@ -1,0 +1,16 @@
+@model Essessay.Models.BoardColumnViewModel
+@{
+    var key = Model.Column.ToString().ToLowerInvariant();
+}
+
+<div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/60">
+    <h3 class="card-label">@Model.Column.ToString()</h3>
+    @* New cards are appended into this container; the placeholder for an empty
+       column is drawn in CSS, so an append never has to remove one first. *@
+    <div id="col-@(key)-cards" class="board-column-cards mt-2 space-y-2">
+        @foreach (var card in Model.Cards)
+        {
+            <partial name="_BoardCard" model="card"/>
+        }
+    </div>
+</div>

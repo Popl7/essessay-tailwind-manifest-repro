@@ -1,9 +1,0 @@
-@model string
-
-@if (!String.IsNullOrEmpty(Model))
-{
-    var isError = Model.StartsWith("Error", StringComparison.OrdinalIgnoreCase);
-    <div class="alert @(isError ? "alert-danger" : "alert-success")" role="alert">
-        @Model
-    </div>
-}

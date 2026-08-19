@@ -2,50 +2,17 @@
     ViewData["Title"] = "Home";
 }
 
-<div class="mx-auto max-w-xl">
-    <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">Welcome</h1>
-    <p class="mt-2 text-gray-600 dark:text-gray-300">A tiny Datastar + Tailwind demo. Explore the modes:</p>
-
-    <div class="mt-6 grid gap-4">
-        <a asp-action="Fragment" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Get Data →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">One-shot server-rendered fragment over SSE.</p>
-        </a>
-        <a asp-action="LiveStream" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Live Stream →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Long-lived SSE — the server pushes updates every second.</p>
-        </a>
-        <a asp-action="Signals" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Signals &amp; Two-Way Binding →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Client-side reactivity with no server round-trip.</p>
-        </a>
-        <a asp-action="RoundTrip" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Round Trip →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">POST signals, read them typed, patch a signal back.</p>
-        </a>
-        <a asp-action="Feed" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Feed →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Infinite scroll with data-on-intersect and append patches.</p>
-        </a>
-        <a asp-action="Todos" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Todos →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">CRUD with @@post / @@patch / @@delete, RemoveElementAsync, toasts, and antiforgery.</p>
-        </a>
-        <a asp-action="Forms" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Forms →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Post a real form element, server-side validation, filtered signals, and a response with no SSE.</p>
-        </a>
-        <a asp-action="Polling" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Polling →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">data-on-interval instead of a long-lived stream, plus morph control and side effects.</p>
-        </a>
-        <a asp-action="Errors" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Errors &amp; Retries →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">The datastar-fetch lifecycle, retry options, openWhenHidden, and request cancellation.</p>
-        </a>
-        <a asp-action="Board" class="card block transition hover:border-blue-300 hover:shadow">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Shared Board →</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">One broadcast to every connected client: presence, typing, and resuming a dropped stream.</p>
-        </a>
-    </div>
+<div class="max-w-lg w-full rounded-2xl border-4 border-emerald-500 bg-white p-10 shadow-xl">
+    <h1 class="text-3xl font-bold text-emerald-600">✅ Tailwind CSS is loaded</h1>
+    <p class="mt-4 text-slate-600">
+        If this box is white with a green border, and this paragraph is grey
+        rather than default black-on-white serif text, then
+        <code class="rounded bg-slate-100 px-1 py-0.5 text-sm">wwwroot/css/site.css</code>
+        loaded successfully and got a route in
+        <code class="rounded bg-slate-100 px-1 py-0.5 text-sm">Essessay.staticwebassets.endpoints.json</code>.
+    </p>
+    <p class="mt-4 text-sm text-slate-400">
+        Unstyled page instead? That's
+        <a class="underline" href="https://github.com/dotnet/aspnetcore/issues/68641">dotnet/aspnetcore#68641</a>.
+    </p>
 </div>

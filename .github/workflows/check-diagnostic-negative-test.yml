@@ -21,3 +21,14 @@ jobs:
             echo "FAIL: expected exactly one SWA001 warning naming wwwroot/css/site.css"
             exit 1
           fi
+      - name: Confirm the underlying manifest bug is actually present too
+        run: |
+          docker run --rm --entrypoint sh app -c "
+            grep -o '\"Route\":\"[^\"]*site.css[^\"]*\"' /app/Essessay.staticwebassets.endpoints.json
+          " | tee /tmp/result.txt
+          if grep -q '"Route":"css/site.css"' /tmp/result.txt; then
+            echo "FAIL: manifest route present — diagnostic fired without the underlying bug, that's a false positive"
+            exit 1
+          else
+            echo "PASS: manifest route missing too, correlating with the SWA001 warning"
+          fi

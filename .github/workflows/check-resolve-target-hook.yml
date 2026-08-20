@@ -1,0 +1,37 @@
+name: Check BeforeTargets=ResolveProjectStaticWebAssets without a Content item
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [resolve-target-direct-hook]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (no cache)
+        run: docker build --no-cache -t app -f Essessay/Dockerfile .
+      - name: Manifest check
+        run: |
+          docker run --rm --entrypoint sh app -c "
+            grep -o '\"Route\":\"[^\"]*site.css[^\"]*\"' /app/Essessay.staticwebassets.endpoints.json
+          " | tee /tmp/result.txt
+          if grep -q '"Route":"css/site.css"' /tmp/result.txt; then
+            echo "site.css IS in the manifest — guaranteed ordering alone was enough"
+          else
+            echo "site.css is MISSING — ordering alone isn't enough, Content registration is what matters"
+          fi
+      - name: Runtime check
+        run: |
+          docker run -d --rm --name runtime -p 8080:8080 app
+          sleep 5
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/css/site.css)
+          echo "GET /css/site.css -> $code"
+          docker stop runtime
+          if [ "$code" = "200" ]; then
+            echo "RESULT: served correctly (200)"
+          else
+            echo "RESULT: 404 — bug reproduced despite guaranteed ordering"
+            exit 1
+          fi

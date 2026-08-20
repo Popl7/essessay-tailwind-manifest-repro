@@ -1,0 +1,33 @@
+name: Check the proposed SWA001 diagnostic (true negative)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [proposed-diagnostic-fix]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (no cache) — expect no SWA001 warning
+        run: |
+          docker build --no-cache -t app -f Essessay/Dockerfile . 2>&1 | tee /tmp/build.log
+          if grep -q "SWA001" /tmp/build.log; then
+            echo "FAIL: SWA001 fired on the working variant (false positive)"
+            exit 1
+          else
+            echo "PASS: no SWA001 warning, as expected on the working variant"
+          fi
+      - name: Manifest + runtime sanity check
+        run: |
+          docker run --rm --entrypoint sh app -c "
+            grep -o '\"Route\":\"[^\"]*site.css[^\"]*\"' /app/Essessay.staticwebassets.endpoints.json
+          " | tee /tmp/result.txt
+          grep -q '"Route":"css/site.css"' /tmp/result.txt || (echo "manifest route missing unexpectedly" && exit 1)
+          docker run -d --rm --name runtime -p 8080:8080 app
+          sleep 5
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/css/site.css)
+          docker stop runtime
+          echo "GET /css/site.css -> $code"
+          [ "$code" = "200" ]

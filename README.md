@@ -1,8 +1,37 @@
 # essessay-tailwind-manifest-repro
 
-Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
+Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641) /
+[dotnet/sdk#55883](https://github.com/dotnet/sdk/issues/55883).
 
-> **You're on the `official-pattern-repro` branch.** `GenerateSiteCss` follows
+> **You're on the `proposed-diagnostic-fix` branch.** Adds a build-time
+> diagnostic (`WarnAboutUndiscoveredWwwrootFiles`, hooked `AfterTargets="Build"`)
+> that compares the final `wwwroot/**` file listing against `@(StaticWebAsset)`'s
+> `Identity` metadata (the real physical path each discovered asset points at —
+> `RelativePath` is a fingerprint *pattern* like `favicon#[.{fingerprint}]?.ico`,
+> not a literal path, so it can't be used for this comparison) and emits an
+> `SWA001` warning for any file present on disk with no matching entry — exactly
+> this bug's signature.
+>
+> Validated as both a true positive and a true negative, under a real
+> `dotnet publish` (not just `dotnet build`):
+> - Silent here (the working `official-pattern-repro` fix) and correctly does
+>   *not* flag the legitimate, git-tracked `favicon.ico`.
+> - Fires exactly once, on exactly the broken file, when the identical block is
+>   applied unchanged to the known-broken `no-external-process-repro` variant
+>   — see [`proposed-diagnostic-fix-negative-test`](../../tree/proposed-diagnostic-fix-negative-test).
+>
+> This is offered as a *today* workaround (drop it into any project using this
+> pattern to get a build warning instead of a silent production 404) and as a
+> concrete starting point for what a real fix inside the SDK could check for.
+> See [`resolve-target-direct-hook`](../../tree/resolve-target-direct-hook) for
+> a related finding: hooking `BeforeTargets="ResolveProjectStaticWebAssets"`
+> directly (a guaranteed ordering edge, rather than being an unordered sibling
+> of it via `BeforeTargets="AssignTargetPaths"`) does **not** fix the bug
+> without a `Content` item either — ordering was never the deciding factor,
+> only explicit `Content` registration is.
+
+> **The `official-pattern-repro` branch** (this one, minus the diagnostic) has
+> `GenerateSiteCss` following
 > Microsoft's own documented pattern for hooking asset generation into static
 > web assets, from
 > [Build client web assets for your Razor Class Library](https://devblogs.microsoft.com/dotnet/build-client-web-assets-for-your-razor-class-library/):

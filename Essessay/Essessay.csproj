@@ -31,4 +31,47 @@
         <WriteLinesToFile File="$(IntermediateOutputPath)sitecss.complete.txt" Lines="@(_GeneratedCss)" Overwrite="true" />
     </Target>
 
+    <!-- PROPOSED FIX (negative-control test): identical diagnostic block from
+         the official-pattern-repro / proposed-diagnostic-fix branch, applied
+         here unchanged to the known-broken variant, to confirm it correctly
+         fires. See https://github.com/dotnet/sdk/issues/55883. -->
+    <UsingTask TaskName="WarnUndiscoveredWwwrootFiles" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <PhysicalFiles ParameterType="Microsoft.Build.Framework.ITaskItem[]" Required="true" />
+            <DiscoveredIdentities ParameterType="System.String[]" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Linq" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                var discovered = new HashSet<string>(
+                    (DiscoveredIdentities ?? new string[0]).Select(p => Path.GetFullPath(p)),
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (var item in PhysicalFiles)
+                {
+                    var full = Path.GetFullPath(item.ItemSpec);
+                    if (!discovered.Contains(full))
+                    {
+                        Log.LogWarning(
+                            "SWA001",
+                            null, null, null, 0, 0, 0, 0,
+                            "wwwroot file '{0}' exists on disk but was never discovered as a static web asset — MapStaticAssets() will 404 it. " +
+                            "If a build target generates this file, register it explicitly, e.g. <Content Include=\"...\" Link=\"wwwroot/...\" /> " +
+                            "instead of writing straight into wwwroot. See https://github.com/dotnet/sdk/issues/55883",
+                            item.ItemSpec);
+                    }
+                }
+            ]]></Code>
+        </Task>
+    </UsingTask>
+
+    <Target Name="WarnAboutUndiscoveredWwwrootFiles" AfterTargets="Build" Condition="Exists('wwwroot')">
+        <ItemGroup>
+            <_PhysicalWwwrootFile Include="wwwroot/**" />
+        </ItemGroup>
+        <WarnUndiscoveredWwwrootFiles
+            PhysicalFiles="@(_PhysicalWwwrootFile)"
+            DiscoveredIdentities="@(StaticWebAsset->'%(Identity)')" />
+    </Target>
+
 </Project>

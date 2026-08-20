@@ -1,0 +1,23 @@
+name: Check the proposed SWA001 diagnostic (true positive)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [proposed-diagnostic-fix-negative-test]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (no cache) — expect exactly one SWA001 warning
+        run: |
+          docker build --no-cache -t app -f Essessay/Dockerfile . 2>&1 | tee /tmp/build.log
+          count=$(grep -c "SWA001" /tmp/build.log || true)
+          echo "SWA001 occurrences: $count"
+          if [ "$count" = "1" ] && grep "SWA001" /tmp/build.log | grep -q "wwwroot/css/site.css"; then
+            echo "PASS: fired exactly once, on exactly the broken file"
+          else
+            echo "FAIL: expected exactly one SWA001 warning naming wwwroot/css/site.css"
+            exit 1
+          fi

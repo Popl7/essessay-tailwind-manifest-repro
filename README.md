@@ -1,15 +1,21 @@
 # essessay-tailwind-manifest-repro
 
-Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641).
+Minimal repro for [dotnet/aspnetcore#68641](https://github.com/dotnet/aspnetcore/issues/68641) /
+[dotnet/sdk#55883](https://github.com/dotnet/sdk/issues/55883).
 
-> **You're on the `no-external-process-repro` branch.** This has no Tailwind CLI
-> and no external process at all — `GenerateSiteCss` writes `wwwroot/css/site.css`
-> with a single built-in, synchronous `<WriteLinesToFile>` MSBuild task. Same bug,
-> reproduced 3/3 local builds. This is the evidence that the bug has nothing to
-> do with Tailwind or with launching an external process — see the issue comment
-> for the full writeup, which also covers a second variant (a trivial external
-> `Exec` with no download) that reproduces it just the same. The `main` branch
-> has the original Tailwind-CLI-based repro.
+> **You're on the `proposed-diagnostic-fix-negative-test` branch.** Same as
+> `no-external-process-repro` (no Tailwind CLI, no external process — a plain
+> `WriteLinesToFile` straight into `wwwroot/css/site.css`), plus the identical
+> `SWA001` diagnostic block from
+> [`proposed-diagnostic-fix`](../../tree/proposed-diagnostic-fix), unchanged,
+> as a true-positive control. **Fires exactly once, on exactly the broken
+> file**, during a real `dotnet publish`:
+> ```
+> SWA001 warning : wwwroot file 'wwwroot/css/site.css' exists on disk but was
+> never discovered as a static web asset — MapStaticAssets() will 404 it. ...
+> ```
+> confirming the diagnostic correctly distinguishes the broken case from the
+> working one rather than just always firing or never firing.
 
 ## The bug
 
